@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
-	"math/rand"
-	"sort"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -17,8 +15,6 @@ const sampleRate = 44100
 var (
 	audioCtx   *audio.Context
 	sfxData    = map[string][]byte{}
-	musicFiles []string
-	musicIdx   int
 	musicPl    *audio.Player
 	lastSFX    = map[string]int64{}
 	musicFade  = 0.0
@@ -46,16 +42,6 @@ func initAudio() {
 			continue
 		}
 		sfxData[strings.TrimSuffix(e.Name(), ".ogg")] = pcm
-	}
-	mus, _ := fs.ReadDir(assetFS, "assets/music")
-	for _, e := range mus {
-		if strings.HasSuffix(e.Name(), ".ogg") {
-			musicFiles = append(musicFiles, "assets/music/"+e.Name())
-		}
-	}
-	sort.Strings(musicFiles)
-	if len(musicFiles) > 0 {
-		musicIdx = rand.Intn(len(musicFiles))
 	}
 }
 
@@ -87,16 +73,47 @@ func musicVolume() float64 {
 	return v * v * 0.7
 }
 
-func startTrack(i int) {
-	if len(musicFiles) == 0 {
-		return
+// Each part of the game has its own song.
+var musicFor = map[string]string{
+	"menu":     "lobby-lights",
+	"daily":    "after-hours",
+	"practice": "velvet-tumblers",
+	"zen":      "still-water",
+	"theme":    "open-house",
+}
+
+var (
+	wantTrack string // the song for the current screen
+	curTrack  string // the song playing now
+)
+
+// setMusic switches to the song for a part of the game ("menu", "daily", ...).
+// The current song fades out first.
+func setMusic(part string) {
+	if t, ok := musicFor[part]; ok {
+		wantTrack = t
 	}
+}
+
+func musicForVault(v *Vault) string {
+	switch v.Kind {
+	case Daily:
+		return "daily"
+	case ZenKind:
+		return "zen"
+	case ThemeKind:
+		return "theme"
+	}
+	return "practice"
+}
+
+func startTrack(name string) {
 	if musicPl != nil {
 		musicPl.Close()
 		musicPl = nil
 	}
-	musicIdx = (i%len(musicFiles) + len(musicFiles)) % len(musicFiles)
-	b, err := assetFS.ReadFile(musicFiles[musicIdx])
+	curTrack = name
+	b, err := assetFS.ReadFile("assets/music/" + name + ".ogg")
 	if err != nil {
 		return
 	}
@@ -114,9 +131,9 @@ func startTrack(i int) {
 	p.Play()
 }
 
-// updateMusic keeps the playlist going and applies the volume every tick.
+// updateMusic fades between songs, loops the current one and applies the volume every tick.
 func updateMusic() {
-	if audioCtx == nil || len(musicFiles) == 0 {
+	if audioCtx == nil || wantTrack == "" {
 		return
 	}
 	if musicVolume() <= 0 {
@@ -127,12 +144,21 @@ func updateMusic() {
 		return
 	}
 	if musicPl == nil {
-		startTrack(musicIdx)
+		startTrack(wantTrack)
+		return
+	}
+	if curTrack != wantTrack {
+		// fade the old song out, then start the new one
+		musicFade = approach(musicFade, 0, 0.06)
+		musicPl.SetVolume(musicVolume() * musicFade)
+		if musicFade < 0.02 {
+			startTrack(wantTrack)
+		}
 		return
 	}
 	if !musicPl.IsPlaying() {
 		if !musicPause {
-			startTrack(musicIdx + 1)
+			startTrack(curTrack) // loop
 			return
 		}
 		musicPause = false

@@ -12,7 +12,7 @@ import (
 
 // Version is the app version. Bump it (and add a CHANGELOG.md entry) for every release.
 // The GitHub release tag must be "v" + Version.
-const Version = "1.2.0"
+const Version = "1.3.0"
 
 const (
 	AppName     = "Keyhole"

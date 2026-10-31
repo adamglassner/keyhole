@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.3.0
+
+- Every part of Keyhole now has its own music: "Lobby Lights" on the menu, "After Hours" for the daily vault, "Velvet Tumblers" for practice, the calm "Still Water" for Zen vaults and the bright "Open House" for Theme vaults.
+- Music fades smoothly from one song to the next as you move around, and each song loops while you play.
+
 ## Version 1.2.0
 
 - New: Zen Vault. No guess limit and no way to fail. Every lock opens eventually, and your score is how many guesses it took. Beat your personal best.

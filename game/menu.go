@@ -15,6 +15,7 @@ type menuScene struct {
 }
 
 func newMenuScene() *menuScene {
+	setMusic("menu")
 	m := &menuScene{}
 	m.daily = Button{ID: "m-daily", Kind: BtnGold, Size: 19}
 	m.practice = Button{ID: "m-prac", Kind: BtnDark, Size: 17, Icon: IconDice}

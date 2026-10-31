@@ -65,6 +65,7 @@ type kbKey struct {
 }
 
 func newPlayScene(v *Vault) *playScene {
+	setMusic(musicForVault(v))
 	p := &playScene{v: v, sounded: map[int]bool{}}
 	p.back = Button{ID: "p-back", Kind: BtnGhost, Icon: IconBack, Size: 22}
 	p.help = Button{ID: "p-help", Kind: BtnGhost, Icon: IconHelp, Size: 22}

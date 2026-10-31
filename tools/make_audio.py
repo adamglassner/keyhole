@@ -229,6 +229,7 @@ def chord_tones(name):
         "m9": [0, 3, 7, 10, 14], "m7": [0, 3, 7, 10], "13": [0, 4, 10, 14, 21], "maj9": [0, 4, 7, 11, 14],
         "7b9": [0, 4, 7, 10, 13], "maj7": [0, 4, 7, 11], "m11": [0, 3, 10, 14, 17], "9": [0, 4, 10, 14],
         "m6": [0, 3, 7, 9], "7#9": [0, 4, 10, 15],
+        "sus": [0, 5, 7, 10, 14], "add9": [0, 4, 7, 14], "maj7#11": [0, 4, 7, 11, 18], "6": [0, 4, 7, 9, 14],
     }
     return r, shapes[kind]
 
@@ -292,7 +293,123 @@ def track(name, progression, bpm, bars_per_chord, loops, melody_scale, seed, vib
     print("music:", name, round(len(mix) / SR), "s")
 
 
+
+def finish(name, L, R, total):
+    mix = np.stack([L, R], axis=1)
+    mix[:, 0] = reverb(mix[:, 0], 1.0, 0.25)[: len(L)]
+    mix[:, 1] = reverb(mix[:, 1], 1.0, 0.25)[: len(R)]
+    end = int((total + 2.5) * SR)
+    mix = mix[:end]
+    fade = int(2.5 * SR)
+    mix[-fade:] *= np.linspace(1, 0, fade)[:, None]
+    fin = int(0.05 * SR)
+    mix[:fin] *= np.linspace(0, 1, fin)[:, None]
+    mix = norm(mix, 0.8)
+    write_ogg(os.path.join(OUT, "music", name + ".ogg"), mix, stereo=True, q=3)
+    print("music:", name, round(len(mix) / SR), "s")
+
+
+def warm_pad(ms, dur):
+    """Soft detuned pad with a slow swell, for Zen."""
+    n = int((dur + 2.0) * SR)
+    t = np.arange(n) / SR
+    s = np.zeros(n)
+    for m in ms:
+        f = hz(m)
+        for det in (-0.12, 0.0, 0.11):
+            ph = 2 * np.pi * f * (1 + det / 100) * t
+            s += np.sin(ph) * 0.6 + np.sin(2 * ph) * 0.15 + np.sin(3 * ph) * 0.05
+    a = np.minimum(1, t / 1.6)
+    rel = np.ones(n)
+    off = int(dur * SR)
+    rel[off:] = np.exp(-np.arange(n - off) / SR / 1.2)
+    s *= a * rel * (1 + 0.04 * np.sin(2 * np.pi * 0.2 * t))
+    return lp(s, 2200) * 0.03
+
+
+def zen_track(name, progression, bpm, loops, scale, seed):
+    """No drums: slow pads, a low bass note per chord and a few soft bells."""
+    r2 = random.Random(seed)
+    beat = 60 / bpm
+    bar = beat * 4
+    per = 2 * bar
+    total = len(progression) * per * loops
+    L = np.zeros(int((total + 5) * SR))
+    R = np.zeros_like(L)
+    pos = 0.0
+    for lp_i in range(loops):
+        for ch in progression:
+            root, iv = chord_tones(ch)
+            voicing = sorted(48 + root + i if 48 + root + i < 70 else 36 + root + i for i in iv)
+            pad = warm_pad(voicing, per)
+            place(L, pad * 1.0, pos)
+            place(R, pad * 0.9, pos + 0.015)
+            b = bass(36 + root if root <= 5 else 24 + root, per * 0.9, 0.55)
+            place(L, b, pos)
+            place(R, b, pos)
+            if lp_i > 0 or r2.random() < 0.5:
+                for k in range(r2.choice([2, 3, 4])):
+                    deg = r2.choice(scale)
+                    m = 72 + (root + deg) % 12
+                    x = ping(hz(m), 3.0, 1.2, 0.09 + 0.05 * r2.random(), ((1, 1), (2.0, 0.08), (3.0, 0.04)))
+                    at = pos + r2.choice([0, 1, 2, 3, 4, 5, 6]) * beat + r2.random() * 0.1
+                    place(L, x * (0.5 + 0.5 * r2.random()), at)
+                    place(R, x * (0.5 + 0.5 * r2.random()), at + 0.02)
+            pos += per
+    finish(name, L, R, total)
+
+
+def bossa_track(name, progression, bpm, loops, scale, seed):
+    """Bright and playful: bossa rhythm with rim clicks, shaker and vibes."""
+    r2 = random.Random(seed)
+    beat = 60 / bpm
+    bar = beat * 4
+    per = 2 * bar
+    total = len(progression) * per * loops
+    L = np.zeros(int((total + 4) * SR))
+    R = np.zeros_like(L)
+    pos = 0.0
+    rim_pattern = [0, 0.75, 1.5, 2.5, 3.25, 4.5, 5.25, 6, 7]  # in beats over two bars
+    for lp_i in range(loops):
+        for ch in progression:
+            root, iv = chord_tones(ch)
+            voicing = sorted(52 + root + i if 52 + root + i < 76 else 40 + root + i for i in iv[1:])
+            for hit in (0, 1.5, 3, 4.5, 6):
+                for k, m in enumerate(voicing):
+                    x = rhodes(m, beat * 0.9, 0.55 + 0.1 * r2.random())
+                    place(L, x * (0.7 - 0.08 * k), pos + hit * beat + k * 0.006)
+                    place(R, x * (0.6 + 0.08 * k), pos + hit * beat + k * 0.006)
+            broot = 36 + root if root <= 5 else 24 + root
+            for hit, m in ((0, broot), (1.5, broot + 7), (2, broot + 7), (4, broot), (5.5, broot + 7), (6, broot + 7)):
+                x = bass(m, beat * 1.2, 0.8)
+                place(L, x, pos + hit * beat)
+                place(R, x, pos + hit * beat)
+            for hit in rim_pattern:
+                rim = tick(1800, 0.05, 0.25, 0.4)
+                place(L, rim * 0.6, pos + hit * beat)
+                place(R, rim * 0.4, pos + hit * beat)
+            for k in range(16):
+                sh = hp(noise(0.06), 6000) * env(int(0.06 * SR), 0.005, 0.02) * (0.05 if k % 2 else 0.03)
+                place(L, sh * 0.5, pos + k * beat / 2)
+                place(R, sh, pos + k * beat / 2)
+            if lp_i > 0 or r2.random() < 0.6:
+                t0 = pos
+                for s0 in sorted(r2.sample([0, 0.5, 1, 1.5, 2.5, 3, 4, 4.5, 5.5, 6, 6.5], r2.choice([3, 4, 5]))):
+                    m = 74 + (root + r2.choice(scale)) % 12
+                    x = vibes(m, beat * 0.6, 0.8)
+                    place(L, x * 0.7, t0 + s0 * beat)
+                    place(R, x * 0.8, t0 + s0 * beat + 0.01)
+            pos += per
+    finish(name, L, R, total)
+
+
 if __name__ == "__main__":
     sfx()
     track("after-hours", ["D:m9", "G:13", "C:maj9", "A:7b9"], 84, 2, 3, [0, 2, 3, 7, 10], 1)
     track("velvet-tumblers", ["F:maj7", "E:m7", "A:7#9", "D:m9", "Bb:maj7", "A:7b9"], 76, 2, 2, [0, 4, 7, 9, 11], 2)
+    # menu: a slow, welcoming lounge tune
+    track("lobby-lights", ["Bb:maj9", "G:m9", "C:m9", "F:13", "Eb:maj7#11", "D:7#9", "G:m9", "C:9"], 68, 1, 3, [0, 2, 4, 7, 9], 3)
+    # zen: no drums, slow pads and bells
+    zen_track("still-water", ["Eb:maj9", "Ab:maj7#11", "C:m9", "Bb:sus", "Ab:maj9", "G:m7", "F:m9", "Bb:sus"], 60, 2, [0, 2, 4, 7, 9], 4)
+    # themes: bright, playful bossa
+    bossa_track("open-house", ["C:maj9", "A:m9", "D:m9", "G:13", "E:m7", "A:7#9", "D:m9", "G:13"], 112, 2, [0, 2, 4, 7, 9], 5)
