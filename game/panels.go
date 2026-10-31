@@ -581,7 +581,7 @@ func newUpdatePanel() *panel {
 	p.content = func(dst *ebiten.Image, x, y, w float64) float64 {
 		y0 := y
 		ver := updateChecker.latestVersion()
-		y += para(dst, "Keyhole "+ver+" is ready to download. You have "+Version+". Your stats, streak and today's vault are kept.", x, y, w, 14, colText)
+		y += para(dst, "Keyhole "+ver+" is ready to download. You have "+Version+". Your stats, streak and today's vault are kept."+map[bool]string{true: " Android will ask you to confirm the install.", false: ""}[cfg.Mobile], x, y, w, 14, colText)
 		y += 12
 		if dst != nil {
 			TextWrapped(dst, updateChecker.statusText(), Regular, 12, x, y, w, 18, updateChecker.statusColor(), AlignCenter)

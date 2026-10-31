@@ -12,13 +12,20 @@ import (
 var (
 	mu       sync.Mutex
 	share    string
+	install  string
 	dataDir  string
 	instance *game.Game
 )
 
 func init() {
 	instance = game.New(game.Config{
-		Mobile: true,
+		Mobile:    true,
+		CanUpdate: true,
+		InstallUpdate: func(path string) {
+			mu.Lock()
+			install = path
+			mu.Unlock()
+		},
 		Share: func(s string) string {
 			mu.Lock()
 			share = s
@@ -46,6 +53,18 @@ func TakeShareText() string {
 	share = ""
 	return s
 }
+
+// TakeInstallPath returns a downloaded update APK the activity should install (and clears it).
+func TakeInstallPath() string {
+	mu.Lock()
+	defer mu.Unlock()
+	p := install
+	install = ""
+	return p
+}
+
+// InstallBlocked tells the game the player didn't allow installing apps.
+func InstallBlocked() { game.UpdateBlocked() }
 
 // OnBack handles the Android back button. It returns false when the activity should close.
 func OnBack() bool { return instance.Back() }

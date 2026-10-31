@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Checking GitHub for updates and downloading them -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Lets the built-in updater open Android's install prompt -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -18,5 +23,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <provider
+            android:name=".UpdateProvider"
+            android:authorities="com.ironite.keyhole.updates"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

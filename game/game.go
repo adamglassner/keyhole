@@ -12,7 +12,7 @@ import (
 
 // Version is the app version. Bump it (and add a CHANGELOG.md entry) for every release.
 // The GitHub release tag must be "v" + Version.
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 const (
 	AppName     = "Keyhole"
@@ -22,11 +22,14 @@ const (
 
 // Config tells the game about the platform it runs on.
 type Config struct {
-	DataDir   string              // where keyhole.json is saved ("" = don't save)
-	Mobile    bool                // phone layout: no hover, no quit button, no fullscreen
-	CanUpdate bool                // Windows: the built-in updater is available
-	Share     func(string) string // shares or copies the result; returns a message for a toast
-	Quit      func()
+	DataDir   string // where keyhole.json is saved ("" = don't save)
+	Mobile    bool   // phone layout: no hover, no quit button, no fullscreen
+	CanUpdate bool   // the built-in updater is available (Windows and Android)
+	// InstallUpdate hands a downloaded update to the platform (Android's installer).
+	// When nil, Windows runs the downloaded setup program itself.
+	InstallUpdate func(path string)
+	Share         func(string) string // shares or copies the result; returns a message for a toast
+	Quit          func()
 }
 
 var cfg Config

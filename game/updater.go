@@ -72,6 +72,10 @@ func (u *UpdateChecker) poll() {
 		u.path = ""
 	}
 	u.mu.Unlock()
+	if launch && cfg.InstallUpdate != nil {
+		cfg.InstallUpdate(path)
+		return
+	}
 	if launch && runtime.GOOS == "windows" {
 		cmd := exec.Command(path)
 		if err := cmd.Start(); err == nil {
@@ -176,7 +180,11 @@ func fetchLatestRelease() (*ReleaseInfo, error) {
 	info := &ReleaseInfo{Version: strings.TrimPrefix(r.TagName, "v"), Tag: r.TagName, Notes: r.Body}
 	for _, a := range r.Assets {
 		n := strings.ToLower(a.Name)
-		if strings.HasSuffix(n, ".exe") && strings.Contains(n, "setup") {
+		want := strings.HasSuffix(n, ".exe") && strings.Contains(n, "setup")
+		if cfg.Mobile {
+			want = strings.HasSuffix(n, ".apk")
+		}
+		if want {
 			info.AssetURL, info.AssetName, info.Size = a.URL, a.Name, a.Size
 			break
 		}
@@ -212,6 +220,9 @@ func (u *UpdateChecker) download() {
 	if info.AssetURL == "" {
 		u.state = updError
 		u.err = "This release has no installer attached (expected a file like Keyhole-Setup-" + info.Version + ".exe)."
+		if cfg.Mobile {
+			u.err = "This release has no Android app attached yet. Try again later."
+		}
 		u.mu.Unlock()
 		return
 	}
@@ -242,7 +253,15 @@ func (u *UpdateChecker) download() {
 		if name == "" {
 			name = "Keyhole-Setup.exe"
 		}
-		path := filepath.Join(os.TempDir(), name)
+		dir := os.TempDir()
+		if cfg.Mobile {
+			// Android: keep the APK in the app's own storage; the activity hands it
+			// to the system installer through a content provider.
+			dir = filepath.Join(cfg.DataDir, "updates")
+			_ = os.RemoveAll(dir)
+			_ = os.MkdirAll(dir, 0o755)
+		}
+		path := filepath.Join(dir, name)
 		f, err := os.Create(path)
 		if err != nil {
 			fail("Couldn't save the installer: " + err.Error())
@@ -281,6 +300,9 @@ func (u *UpdateChecker) statusText() string {
 	case updDownloading:
 		return fmt.Sprintf("Downloading update... %d%%", int(u.progress*100))
 	case updReady:
+		if cfg.Mobile {
+			return "Downloaded. Tap Install on the Android prompt."
+		}
 		if runtime.GOOS == "windows" {
 			return "Starting the installer..."
 		}
@@ -299,4 +321,24 @@ func (u *UpdateChecker) statusColor() color.RGBA {
 		return colDanger
 	}
 	return colTextDim
+}
+
+// UpdateBlocked is called on Android when the player hasn't allowed Keyhole to install apps.
+func UpdateBlocked() {
+	u := updateChecker
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.state = updError
+	u.err = "To update, allow Keyhole to install apps (Android asks you in Settings), then tap Update again."
+	if u.latest != nil {
+		// let the player try again without checking GitHub again
+		go func() {
+			time.Sleep(4 * time.Second)
+			u.mu.Lock()
+			if u.state == updError {
+				u.state = updAvailable
+			}
+			u.mu.Unlock()
+		}()
+	}
 }

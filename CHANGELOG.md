@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.1.0
+
+- Android: Keyhole now checks GitHub for new versions. When one is out, tap Update now and Android asks you to confirm the install. Your stats, streak and gold keys are kept. You can turn the check off, or check by hand, in Options.
+- The first time you update, Android asks you to allow Keyhole to install apps. That's needed for the built-in updater.
+
 ## Version 1.0.0
 
 First release of Keyhole, the daily word vault.
