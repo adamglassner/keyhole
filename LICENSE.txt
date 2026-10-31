@@ -1,0 +1,6 @@
+Keyhole - Copyright (c) 2026 Ironite. All rights reserved.
+
+The Keyhole name, logo, artwork, music and sound effects are part of Keyhole
+and may not be redistributed separately without permission.
+
+Third-party components are listed in THIRD-PARTY-NOTICES.txt.

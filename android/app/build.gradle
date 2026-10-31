@@ -1,0 +1,61 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Version comes from game/game.go (passed in by build-android.sh).
+def appVersion = project.findProperty('appVersion') ?: '1.0.0'
+def parts = appVersion.tokenize('.').collect { it as int }
+def appVersionCode = parts[0] * 10000 + parts[1] * 100 + parts[2]
+
+android {
+    namespace 'com.ironite.keyhole'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.ironite.keyhole'
+        minSdk 21
+        targetSdk 34
+        versionCode appVersionCode
+        versionName appVersion
+    }
+
+    signingConfigs {
+        release {
+            // Repository secrets win if they're set (see README.md). Otherwise the
+            // key in android/keystore is used, so every release has the same signature.
+            def ks = System.getenv('KEYHOLE_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('KEYHOLE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEYHOLE_KEY_ALIAS')
+                keyPassword System.getenv('KEYHOLE_KEY_PASSWORD')
+            } else {
+                def props = new Properties()
+                def pf = rootProject.file('keystore/keystore.properties')
+                if (pf.exists()) {
+                    pf.withInputStream { props.load(it) }
+                    storeFile rootProject.file('keystore/' + props['storeFile'])
+                    storePassword props['storePassword']
+                    keyAlias props['keyAlias']
+                    keyPassword props['keyPassword']
+                }
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar'])
+}

@@ -1,0 +1,32 @@
+Keyhole uses the following third-party components. Thank you to their authors!
+
+Ebitengine (github.com/hajimehoshi/ebiten) - Apache License 2.0
+  Copyright 2013 The Ebitengine Authors. https://www.apache.org/licenses/LICENSE-2.0
+Oto (github.com/ebitengine/oto), PureGo (github.com/ebitengine/purego),
+gomobile fork (github.com/ebitengine/gomobile) - Apache License 2.0 / BSD 3-Clause
+go-text/typesetting - BSD 3-Clause / Unlicense
+oggvorbis, vorbis (github.com/jfreymuth) - MIT License
+The Go programming language and golang.org/x libraries - BSD 3-Clause License
+  Copyright (c) 2009 The Go Authors.
+
+Poppins font - SIL Open Font License 1.1
+  Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins)
+  The full license is at https://openfontlicense.org
+
+Word lists are made from the English Speller Database (ESDB, formerly SCOWL)
+and the Wordnik word list:
+
+  Copyright 2000-2026 by Kevin Atkinson
+
+  Permission to use, copy, modify, distribute, and sell any part of the English
+  Speller Database (ESDB, previously known as SCOWLv2), or word lists
+  created from it, is hereby granted without fee, provided that the above
+  copyright notice appears in all copies and that both the above copyright
+  notice and this notice appear in supporting documentation.  Kevin Atkinson
+  makes no representations about the suitability of this database for any
+  purpose.  It is provided "as is" without express or implied warranty.
+
+  Wordnik word list (github.com/wordnik/wordlist) - MIT License
+  Copyright (c) 2020 Wordnik
+
+Music and sound effects are original compositions created for Keyhole.

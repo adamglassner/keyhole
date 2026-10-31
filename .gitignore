@@ -1,0 +1,15 @@
+dist/
+*.exe
+!installer/
+/keyhole
+android/.gradle/
+android/build/
+android/app/build/
+android/app/libs/*.aar
+android/app/libs/*.jar
+android/local.properties
+*.keystore
+tools/__pycache__/
+.DS_Store
+Thumbs.db
+!android/keystore/*.jks
