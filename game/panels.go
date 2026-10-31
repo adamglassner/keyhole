@@ -170,6 +170,12 @@ func newHelpPanel() *panel {
 		y += 14
 		y += heading(dst, "A new vault every day", x, y)
 		y += para(dst, "Everyone gets the same vault each day, and a new one opens at midnight. Want more? Practice vaults are unlimited.", x, y, w, 15, colText)
+		y += 14
+		y += heading(dst, "Zen Vault", x, y)
+		y += para(dst, "No guess limit and no way to fail. Every lock opens eventually, and your score is how many guesses it took. Fewer is better.", x, y, w, 15, colText)
+		y += 14
+		y += heading(dst, "Theme Vaults", x, y)
+		y += para(dst, "Pick a topic, like Animals, Food or Space. Every word in the vault fits it, which makes the locks easier to crack.", x, y, w, 15, colText)
 		return y - y0 + 6
 	}
 	return p
@@ -246,11 +252,17 @@ func newStatsPanel() *panel {
 			y += 30
 		}
 		y += 10
-		y += heading(dst, "Practice", x, y)
+		y += heading(dst, "Practice, Zen and Themes", x, y)
 		if dst != nil {
-			Text(dst, fmt.Sprintf("%d played  ·  %d opened  ·  best %d to spare", s.PracPlayed, s.PracOpened, s.PracBest), Regular, 14, x, y+10, colText, AlignLeft)
+			Text(dst, fmt.Sprintf("Practice: %d played, %d opened, best %d to spare", s.PracPlayed, s.PracOpened, s.PracBest), Regular, 14, x, y+10, colText, AlignLeft)
+			zb := "no best yet"
+			if s.ZenBest > 0 {
+				zb = "best " + plural(s.ZenBest, "guess", "guesses")
+			}
+			Text(dst, fmt.Sprintf("Zen: %d opened, %s", s.ZenPlayed, zb), Regular, 14, x, y+34, colText, AlignLeft)
+			Text(dst, fmt.Sprintf("Themes: %d played, %d opened", s.ThemePlay, s.ThemeOpen), Regular, 14, x, y+58, colText, AlignLeft)
 		}
-		y += 30
+		y += 78
 		if v := save.Daily; v != nil && v.Done && v.Number == TodayNumber() {
 			y += 6
 			if dst != nil {
@@ -448,8 +460,13 @@ func newResultPanel(ps *playScene) *panel {
 		share.Label = "Copy result"
 	}
 	again := &Button{ID: "r-prac", Kind: BtnDark, Label: "Practice vault", Icon: IconDice, Size: 15}
-	if v.Kind == Practice {
+	switch v.Kind {
+	case Practice:
 		again.Label = "New practice vault"
+	case ZenKind:
+		again.Label, again.Icon = "New zen vault", IconZen
+	case ThemeKind:
+		again.Label, again.Icon = "Another "+v.Theme+" vault", IconTheme
 	}
 	menu := &Button{ID: "r-menu", Kind: BtnGhost, Label: "Back to menu", Size: 15}
 	p.content = func(dst *ebiten.Image, x, y, w float64) float64 {
@@ -458,14 +475,29 @@ func newResultPanel(ps *playScene) *panel {
 		mp := marksPalette()
 		cx := x + w/2
 		sub := "Practice vault"
-		if v.Kind == Daily {
+		switch v.Kind {
+		case Daily:
 			sub = "Daily vault #" + itoa(v.Number)
+		case ZenKind:
+			sub = "Zen vault"
+		case ThemeKind:
+			sub = "Theme: " + v.Theme
 		}
 		if dst != nil {
 			Text(dst, sub, Medium, 13, cx, y+8, colTextDim, AlignCenter)
 		}
 		y += 22
-		if v.Opened {
+		if v.Kind == ZenKind {
+			if dst != nil {
+				Text(dst, itoa(v.Used), Bold, 56, cx, y+36, st.MetalHi, AlignCenter)
+				label := "guesses to open all three locks"
+				if save.Stats.ZenBest == v.Used && save.Stats.ZenPlayed > 1 {
+					label = "guesses. A new personal best!"
+				}
+				Text(dst, label, Medium, 14, cx, y+76, colText, AlignCenter)
+			}
+			y += 94
+		} else if v.Opened {
 			if dst != nil {
 				Text(dst, itoa(v.Spare()), Bold, 56, cx, y+36, st.MetalHi, AlignCenter)
 				Text(dst, "guesses to spare", Medium, 14, cx, y+76, colText, AlignCenter)
@@ -551,10 +583,20 @@ func newResultPanel(ps *playScene) *panel {
 				}
 			}
 			if again.Update() {
-				save.Practice = NewVault(Practice, 0, PracticeAnswers())
+				var nv *Vault
+				switch v.Kind {
+				case ZenKind:
+					save.Zen = NewVault(ZenKind, 0, ZenAnswers())
+					nv = save.Zen
+				case ThemeKind:
+					nv = newThemeVault(v.Theme)
+				default:
+					save.Practice = NewVault(Practice, 0, PracticeAnswers())
+					nv = save.Practice
+				}
 				writeSave()
 				p.Dismiss()
-				game.SetScene(newPlayScene(save.Practice))
+				game.SetScene(newPlayScene(nv))
 			}
 			if menu.Update() {
 				p.Dismiss()
@@ -608,6 +650,67 @@ func newUpdatePanel() *panel {
 			skip.Draw(dst)
 		}
 		y += 110
+		return y - y0
+	}
+	return p
+}
+
+// ---- Theme picker
+
+func newThemeVault(name string) *Vault {
+	t := ThemeByName(name)
+	if t == nil {
+		t = &themes[0]
+	}
+	v := NewVault(ThemeKind, 0, ThemeAnswers(t))
+	v.Theme = t.Name
+	save.Themed = v
+	return v
+}
+
+func newThemesPanel() *panel {
+	p := newPanel("Theme Vaults", 480)
+	cont := &Button{ID: "th-cont", Kind: BtnGold, Size: 16, Icon: IconTheme}
+	p.content = func(dst *ebiten.Image, x, y, w float64) float64 {
+		y0 := y
+		st := style()
+		y += para(dst, "Every word in the vault fits the topic you pick. 15 guesses, three locks.", x, y, w, 14, colTextDim)
+		y += 10
+		if t := save.Themed; t != nil && !t.Done && t.Used > 0 {
+			cont.Label = "Continue: " + t.Theme
+			cont.R = Rect{x, y, w, 50}
+			if dst == nil {
+				if cont.Update() {
+					p.Dismiss()
+					game.SetScene(newPlayScene(t))
+				}
+			} else {
+				cont.Draw(dst)
+			}
+			y += 62
+		}
+		gap := 10.0
+		cw := (w - gap) / 2
+		for i := range themes {
+			t := &themes[i]
+			r := Rect{x + float64(i%2)*(cw+gap), y + float64(i/2)*(78+gap), cw, 78}
+			if dst == nil {
+				if in.Click(r) {
+					playSFX("button")
+					v := newThemeVault(t.Name)
+					writeSave()
+					p.Dismiss()
+					game.SetScene(newPlayScene(v))
+				}
+				continue
+			}
+			h := animHover("theme"+t.Name, in.Hover(r))
+			FillRR(dst, r, 14, lerpColor(alpha(colBlack, 0.3), alpha(colWhite, 0.07), h))
+			StrokeRR(dst, r, 14, 1.2, lerpColor(colBorder, st.Metal, h))
+			Text(dst, t.Name, Bold, 16, r.X+14, r.Y+24, colText, AlignLeft)
+			TextWrapped(dst, t.Blurb, Regular, 12, r.X+14, r.Y+38, r.W-24, 16, colTextDim, AlignLeft)
+		}
+		y += float64((len(themes)+1)/2) * (78 + gap)
 		return y - y0
 	}
 	return p

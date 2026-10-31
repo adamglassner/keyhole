@@ -16,8 +16,10 @@ const (
 	Wiggle = rules.Wiggle
 	Click  = rules.Click
 
-	Daily    = rules.Daily
-	Practice = rules.Practice
+	Daily     = rules.Daily
+	Practice  = rules.Practice
+	ZenKind   = rules.Zen
+	ThemeKind = rules.Theme
 
 	GuessOK       = rules.GuessOK
 	GuessTooShort = rules.GuessTooShort
@@ -41,4 +43,8 @@ var (
 	isValid         = rules.IsValid
 	loadWords       = rules.Load
 	itoa            = rules.Itoa
+	themes          = rules.Themes
+	ThemeAnswers    = rules.ThemeAnswers
+	ThemeByName     = rules.ThemeByName
+	ZenAnswers      = rules.ZenAnswers
 )

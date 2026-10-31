@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.2.0
+
+- New: Zen Vault. No guess limit and no way to fail. Every lock opens eventually, and your score is how many guesses it took. Beat your personal best.
+- New: Theme Vaults. Pick a topic (Animals, Food, Nature, Halloween, Space, Music, or Sports & Games) and every word in the vault fits it.
+- Stats now include Zen and Theme vaults, and How to Play explains the new modes.
+
 ## Version 1.1.0
 
 - Android: Keyhole now checks GitHub for new versions. When one is out, tap Update now and Android asks you to confirm the install. Your stats, streak and gold keys are kept. You can turn the check off, or check by hand, in Options.

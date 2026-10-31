@@ -221,6 +221,20 @@ func IconDice(dst *ebiten.Image, cx, cy, s float64, c color.RGBA) {
 	}
 }
 
+func IconZen(dst *ebiten.Image, cx, cy, s float64, c color.RGBA) {
+	// a calm lotus: three petals over a line
+	Poly(dst, c, cx, cy-s*0.38, cx+s*0.13, cy, cx, cy+s*0.14, cx-s*0.13, cy)
+	Poly(dst, c, cx-s*0.42, cy-s*0.12, cx-s*0.06, cy+s*0.02, cx-s*0.08, cy+s*0.16, cx-s*0.36, cy+s*0.08)
+	Poly(dst, c, cx+s*0.42, cy-s*0.12, cx+s*0.06, cy+s*0.02, cx+s*0.08, cy+s*0.16, cx+s*0.36, cy+s*0.08)
+	Line(dst, cx-s*0.4, cy+s*0.3, cx+s*0.4, cy+s*0.3, s*0.08, c)
+}
+
+func IconTheme(dst *ebiten.Image, cx, cy, s float64, c color.RGBA) {
+	// a tag
+	Poly(dst, c, cx-s*0.38, cy-s*0.3, cx+s*0.12, cy-s*0.3, cx+s*0.42, cy, cx+s*0.12, cy+s*0.3, cx-s*0.38, cy+s*0.3)
+	FillCircle(dst, cx-s*0.16, cy, s*0.08, colSurface)
+}
+
 func IconLock(dst *ebiten.Image, cx, cy, s float64, c color.RGBA) {
 	drawPadlock(dst, cx, cy+s*0.08, s*0.75, c, darken(c, 0.5), 0, false)
 }

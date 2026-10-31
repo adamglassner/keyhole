@@ -87,8 +87,13 @@ func newPlayScene(v *Vault) *playScene {
 }
 
 func (p *playScene) title() string {
-	if p.v.Kind == Daily {
+	switch p.v.Kind {
+	case Daily:
 		return "Vault #" + itoa(p.v.Number)
+	case ZenKind:
+		return "Zen Vault"
+	case ThemeKind:
+		return p.v.Theme + " Vault"
 	}
 	return "Practice Vault"
 }
@@ -508,6 +513,11 @@ func (p *playScene) drawStrip(dst *ebiten.Image, st *LockStyle) {
 
 func (p *playScene) drawMeter(dst *ebiten.Image, st *LockStyle) {
 	r := p.meterR
+	if p.v.Kind == ZenKind {
+		Text(dst, plural(p.v.Used, "guess", "guesses")+" so far", Bold, 14, r.X, r.CY(), colText, AlignLeft)
+		Text(dst, "No limit. Take your time.", Regular, 13, r.Right(), r.CY(), colTextDim, AlignRight)
+		return
+	}
 	left := p.v.Left()
 	label := plural(left, "guess left", "guesses left")
 	lc := colText

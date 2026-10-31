@@ -11,6 +11,8 @@
 - **Pins:** when a lock opens, its letters become pins. Before your first guess on the next lock, tap a pin to test it for free. You'll learn whether that letter is in the new word and roughly where: front, middle or back. Open a lock in 3 guesses or fewer to get two free tests.
 - Open the daily vault with **6 or more guesses to spare** to earn a **gold key**. Keys unlock new lock styles: Steel Safe, Copper Strongbox, Bank Vault, Treasure Chest and Royal Vault.
 - Everyone gets the same vault on the same day. A new one opens at midnight. **Practice vaults** are unlimited.
+- **Zen Vault:** no guess limit and no fail screen. Your score is how many guesses it took.
+- **Theme Vaults:** pick a topic (Animals, Food, Nature, Halloween, Space, Music, Sports & Games) and every word fits it.
 
 ## Installing
 

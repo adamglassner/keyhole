@@ -144,3 +144,55 @@ func TestDailyStable(t *testing.T) {
 		t.Fatalf("today %d", TodayNumber())
 	}
 }
+
+func TestThemes(t *testing.T) {
+	Load()
+	for i := range Themes {
+		th := &Themes[i]
+		seen := map[string]bool{}
+		for _, n := range LockLengths {
+			ws := th.Words(n)
+			if len(ws) < 10 {
+				t.Errorf("%s has only %d words of %d letters", th.Name, len(ws), n)
+			}
+			for _, w := range ws {
+				if !IsValid(w) {
+					t.Errorf("%s: %q isn't in the word list", th.Name, w)
+				}
+				if seen[w] {
+					t.Errorf("%s: %q listed twice", th.Name, w)
+				}
+				seen[w] = true
+			}
+		}
+		a := ThemeAnswers(th)
+		for i, n := range LockLengths {
+			if len(a[i]) != n {
+				t.Fatalf("theme answer %q wrong length", a[i])
+			}
+		}
+	}
+}
+
+func TestZenNeverRunsOut(t *testing.T) {
+	Load()
+	v := NewVault(Zen, 0, [3]string{"bolt", "crane", "silver"})
+	words := []string{"able", "acid", "aged", "also", "area", "army", "away", "baby", "back", "ball", "band", "bank", "base", "bath", "bear", "beat", "been", "beer"}
+	for _, w := range words {
+		v.Guess(w, IsValid)
+	}
+	if v.Done || v.Left() <= 0 {
+		t.Fatal("zen vault should never run out")
+	}
+	v.Guess("bolt", IsValid)
+	v.Advance()
+	v.Guess("crane", IsValid)
+	v.Advance()
+	v.Guess("silver", IsValid)
+	if !v.Opened || v.Used != 21 {
+		t.Fatalf("opened %v used %d", v.Opened, v.Used)
+	}
+	if !strings.Contains(v.ShareText(), "opened in 21 guesses") {
+		t.Fatal(v.ShareText())
+	}
+}

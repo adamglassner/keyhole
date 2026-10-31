@@ -132,10 +132,13 @@ type VaultKind int
 const (
 	Daily VaultKind = iota
 	Practice
+	Zen   // no guess limit: the score is how many guesses it took
+	Theme // every answer fits a chosen topic
 )
 
 type Vault struct {
 	Kind   VaultKind `json:"kind"`
+	Theme  string    `json:"theme,omitempty"`
 	Number int       `json:"num"` // daily vault number (1 = first day)
 	Locks  [3]Lock   `json:"locks"`
 	Cur    int       `json:"cur"`
@@ -152,8 +155,15 @@ func NewVault(kind VaultKind, number int, answers [3]string) *Vault {
 	return v
 }
 
-func (v *Vault) Lock() *Lock           { return &v.Locks[v.Cur] }
-func (v *Vault) Left() int             { return TotalGuesses - v.Used }
+func (v *Vault) Lock() *Lock { return &v.Locks[v.Cur] }
+
+// Left is how many guesses remain (Zen vaults never run out).
+func (v *Vault) Left() int {
+	if v.Kind == Zen {
+		return 99
+	}
+	return TotalGuesses - v.Used
+}
 func (v *Vault) WordLen() int          { return len(v.Locks[v.Cur].Answer) }
 func (v *Vault) GuessesUsed(i int) int { return len(v.Locks[i].Guesses) }
 
@@ -195,7 +205,7 @@ func (v *Vault) Guess(word string, valid func(string) bool) (GuessResult, bool) 
 		}
 		return GuessOK, true
 	}
-	if v.Used >= TotalGuesses {
+	if v.Kind != Zen && v.Used >= TotalGuesses {
 		v.Done = true
 	}
 	return GuessOK, false
@@ -282,7 +292,7 @@ func (v *Vault) PinTestsLeft() int {
 
 // Spare is how many guesses were left when the vault opened.
 func (v *Vault) Spare() int {
-	if !v.Opened {
+	if !v.Opened || v.Kind == Zen {
 		return 0
 	}
 	return TotalGuesses - v.Used
@@ -325,10 +335,17 @@ func (v *Vault) KeyState() map[byte]int {
 func (v *Vault) ShareText() string {
 	var b strings.Builder
 	title := "Keyhole Practice"
-	if v.Kind == Daily {
+	switch v.Kind {
+	case Daily:
 		title = "Keyhole #" + Itoa(v.Number)
+	case Zen:
+		title = "Keyhole Zen"
+	case Theme:
+		title = "Keyhole · " + v.Theme
 	}
-	if v.Opened {
+	if v.Kind == Zen {
+		b.WriteString("🧘 " + title + " · opened in " + Itoa(v.Used) + " guesses")
+	} else if v.Opened {
 		b.WriteString("🔓 " + title + " · opened, " + Itoa(v.Spare()) + " to spare")
 		if v.Kind == Daily && v.Spare() >= GoldKeySpare {
 			b.WriteString(" 🔑")

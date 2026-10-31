@@ -9,15 +9,17 @@ import (
 )
 
 type menuScene struct {
-	daily, practice, help, stats, locks, options, quit Button
-	t                                                  float64
-	dialY, dialR, titleY, chipsY                       float64
+	daily, practice, zen, theme, help, stats, locks, options, quit Button
+	t                                                              float64
+	dialY, dialR, titleY, chipsY                                   float64
 }
 
 func newMenuScene() *menuScene {
 	m := &menuScene{}
 	m.daily = Button{ID: "m-daily", Kind: BtnGold, Size: 19}
 	m.practice = Button{ID: "m-prac", Kind: BtnDark, Size: 17, Icon: IconDice}
+	m.zen = Button{ID: "m-zen", Kind: BtnDark, Size: 16, Icon: IconZen, Label: "Zen Vault"}
+	m.theme = Button{ID: "m-theme", Kind: BtnDark, Size: 16, Icon: IconTheme, Label: "Theme Vaults"}
 	m.help = Button{ID: "m-help", Kind: BtnDark, Size: 14, Icon: IconHelp, Label: "How to play"}
 	m.stats = Button{ID: "m-stats", Kind: BtnDark, Size: 14, Icon: IconStats, Label: "Stats"}
 	m.locks = Button{ID: "m-locks", Kind: BtnDark, Size: 14, Icon: IconKey, Label: "Locks"}
@@ -35,7 +37,7 @@ func (m *menuScene) layout() {
 	bw := math.Min(390, SW-40)
 	m.dialR = clamp(math.Min(SW*0.24, SH*0.13), 54, 118)
 	titleSize := clamp(SW*0.12, 36, 60)
-	contentH := m.dialR*2 + 24 + titleSize + 36 + 44 + 72 + 12 + 62 + 12 + 52
+	contentH := m.dialR*2 + 24 + titleSize + 36 + 44 + 72 + 12 + 62 + 12 + 58 + 12 + 52
 	if !cfg.Mobile {
 		contentH += 52
 	}
@@ -49,6 +51,10 @@ func (m *menuScene) layout() {
 	y += 72 + 12
 	m.practice.R = Rect{x, y, bw, 62}
 	y += 62 + 12
+	half := (bw - 10) / 2
+	m.zen.R = Rect{x, y, half, 58}
+	m.theme.R = Rect{x + half + 10, y, half, 58}
+	y += 58 + 12
 	gap := 10.0
 	w3 := (bw - 2*gap) / 3
 	m.help.R = Rect{x, y, w3, 52}
@@ -74,6 +80,14 @@ func (m *menuScene) labels() {
 	default:
 		m.daily.Sub = "Sealed  ·  next vault in " + fmtDur(UntilNextVault())
 	}
+	m.zen.Sub = "No guess limit"
+	if z := save.Zen; z != nil && !z.Done && z.Used > 0 {
+		m.zen.Sub = "Continue · lock " + itoa(z.Cur+1)
+	}
+	m.theme.Sub = "Pick a topic"
+	if t := save.Themed; t != nil && !t.Done && t.Used > 0 {
+		m.theme.Sub = "Continue · " + t.Theme
+	}
 	m.practice.Label = "Practice Vault"
 	if p := save.Practice; p != nil && !p.Done && p.Used > 0 {
 		m.practice.Sub = fmt.Sprintf("Continue  ·  lock %d of 3, %d left", p.Cur+1, p.Left())
@@ -96,6 +110,16 @@ func (m *menuScene) Update() {
 			writeSave()
 		}
 		game.SetScene(newPlayScene(save.Practice))
+	}
+	if m.zen.Update() {
+		if save.Zen == nil || save.Zen.Done {
+			save.Zen = NewVault(ZenKind, 0, ZenAnswers())
+			writeSave()
+		}
+		game.SetScene(newPlayScene(save.Zen))
+	}
+	if m.theme.Update() {
+		game.Push(newThemesPanel())
 	}
 	if m.help.Update() {
 		game.Push(newHelpPanel())
@@ -159,6 +183,8 @@ func (m *menuScene) Draw(dst *ebiten.Image) {
 
 	m.daily.Draw(dst)
 	m.practice.Draw(dst)
+	m.zen.Draw(dst)
+	m.theme.Draw(dst)
 	m.help.Draw(dst)
 	m.stats.Draw(dst)
 	m.locks.Draw(dst)

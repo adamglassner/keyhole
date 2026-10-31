@@ -31,6 +31,10 @@ type Stats struct {
 	PracPlayed int     `json:"practicePlayed"`
 	PracOpened int     `json:"practiceOpened"`
 	PracBest   int     `json:"practiceBest"`
+	ZenPlayed  int     `json:"zenPlayed"`
+	ZenBest    int     `json:"zenBest"` // fewest guesses to open a Zen vault
+	ThemePlay  int     `json:"themePlayed"`
+	ThemeOpen  int     `json:"themeOpened"`
 }
 
 type SaveData struct {
@@ -39,6 +43,8 @@ type SaveData struct {
 	Stats    Stats    `json:"stats"`
 	Daily    *Vault   `json:"daily,omitempty"`
 	Practice *Vault   `json:"practice,omitempty"`
+	Zen      *Vault   `json:"zen,omitempty"`
+	Themed   *Vault   `json:"themed,omitempty"`
 }
 
 var save = SaveData{Version: 1, Settings: defaultSettings()}
@@ -69,7 +75,7 @@ func loadSave() {
 		return
 	}
 	save = s
-	for _, v := range []*Vault{save.Daily, save.Practice} {
+	for _, v := range []*Vault{save.Daily, save.Practice, save.Zen, save.Themed} {
 		if v != nil && !v.Done && v.Lock().Opened {
 			v.Advance() // the app closed during the unlock animation
 		}
@@ -103,6 +109,22 @@ func currentStreak() int {
 // recordFinish updates stats when a vault is finished. It returns true if a gold key was earned.
 func recordFinish(v *Vault) bool {
 	st := &save.Stats
+	switch v.Kind {
+	case ZenKind:
+		st.ZenPlayed++
+		if st.ZenBest == 0 || v.Used < st.ZenBest {
+			st.ZenBest = v.Used
+		}
+		writeSave()
+		return false
+	case ThemeKind:
+		st.ThemePlay++
+		if v.Opened {
+			st.ThemeOpen++
+		}
+		writeSave()
+		return false
+	}
 	if v.Kind == Practice {
 		st.PracPlayed++
 		if v.Opened {
